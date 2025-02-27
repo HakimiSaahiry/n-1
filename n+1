@@ -1,0 +1,47 @@
+// Example 1 : Users and Profiles
+
+$users = User::all();
+foreach ($users as $user) {
+    echo $user->profile->bio;
+}
+
+
+// The issue here is that for each user, a separate query is made to fetch the profile relationship, resulting in N+1 queries (1 for users + N for each profile).
+
+// Optimized using with():
+
+$users = User::with('profile')->get();
+foreach ($users as $user) {
+    echo $user->profile->bio;
+}
+
+// Example 2: Orders, Customers, and Addresses
+
+$orders = Order::all();
+foreach ($orders as $order) {
+    echo $order->customer->name;
+    echo $order->customer->address->city;
+}
+
+// Here, for each order, separate queries are made to fetch customer and then address, leading to 1 (orders) + N (customers) + N (addresses) queries.
+
+// Optimized using with():
+
+$orders = Order::with(['customer.address'])->get();
+foreach ($orders as $order) {
+    echo $order->customer->name;
+    echo $order->customer->address->city;
+}
+
+// Alternatively, using join():
+
+$orders = Order::join('customers', 'orders.customer_id', '=', 'customers.id')
+    ->join('addresses', 'customers.id', '=', 'addresses.customer_id')
+    ->select('orders.*', 'customers.name', 'addresses.city')
+    ->get();
+foreach ($orders as $order) {
+    echo $order->name;  // Customer name
+    echo $order->city;  // Address city
+}
+
+// with() will take two of the components together, while join() will combine it together but it is messy. This will help the N+1 problem where we can optimize the database query.
